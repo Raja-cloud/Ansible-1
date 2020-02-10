@@ -1,0 +1,29 @@
+---
+- hosts: all
+  gather_facts: false
+  become: yes
+  become_method: su
+  become_user: root
+
+  tasks:
+  - name: check whether file exists or not
+    stat:
+      path: /etc/sysconfig/iptables
+    register: filecheck
+
+  - name: changing the contents of iptables file
+    lineinfile:
+      path: /etc/sysconfig/iptables
+      insertbefore: 'TEST'
+      line: "-A INPUT -s 10.20.30.40/28 -j ACCEPT"
+      state: present
+      backup: yes
+    check_mode: no
+    when: filecheck.stat.exists == True
+    register: iptablesop
+
+  - name: restarting the iptables service
+    service:
+       name: iptables
+       state: restarted
+    when: filecheck.stat.exists == True
